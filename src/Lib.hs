@@ -1,6 +1,6 @@
 module Lib
-    ( someFunc
+    ( maybeToEither
     ) where
 
-someFunc :: IO ()
-someFunc = putStrLn "someFunc"
+maybeToEither :: e -> Maybe a -> Either e a
+maybeToEither = flip maybe Right . Left
