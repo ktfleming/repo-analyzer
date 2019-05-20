@@ -3,11 +3,12 @@
 
 module Main where
 
-import qualified GitHub.Endpoints.PullRequests as PR
-import qualified GitHub.Endpoints.Issues as Issues
-import qualified GitHub.Data.Options as Options
-import qualified GitHub.Request as R
-import qualified GitHub.Data.Definitions as Definitions
+import GitHub.Endpoints.PullRequests
+import GitHub.Endpoints.Issues
+import GitHub.Data.Name ( Name ( N))
+import GitHub.Data.Options
+import GitHub.Request
+import GitHub.Data.Definitions
 import GitHub.Auth
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except
@@ -18,9 +19,9 @@ import Data.Foldable (traverse_)
 import System.ReadEnvVar
 import Lib
 
-data MyError = NoTokenFound | GitHubError Definitions.Error deriving Show
+data MyError = NoTokenFound | GitHubError Error deriving Show
 
-data AllData = AllData (Vector PR.SimplePullRequest) (Vector Issues.Issue)
+data AllData = AllData (Vector SimplePullRequest) (Vector Issue)
 
 lookupToken :: ExceptT MyError IO Auth
 lookupToken = ExceptT $ do
@@ -29,13 +30,13 @@ lookupToken = ExceptT $ do
 
 getData' :: Auth -> Text -> Text -> ExceptT MyError IO AllData
 getData' auth owner repoName = do
-  let prRequest = PR.pullRequestsForR (PR.mkOwnerName owner) (PR.mkRepoName repoName) Options.stateAll PR.FetchAll
-  pullRequests <- withExceptT errorMapper $ ExceptT $ R.executeRequest auth prRequest
-  let issueRequest = Issues.issuesForRepoR　(Issues.mkOwnerName owner) (Issues.mkRepoName repoName) Options.stateAll Issues.FetchAll
-  issues <- withExceptT errorMapper $ ExceptT $ R.executeRequest auth issueRequest
+  let prRequest = pullRequestsForR (N owner) (N repoName) stateAll FetchAll
+  pullRequests <- withExceptT errorMapper $ ExceptT $ executeRequest auth prRequest
+  let issueRequest = issuesForRepoR　(N owner) (N repoName) stateAll FetchAll
+  issues <- withExceptT errorMapper $ ExceptT $ executeRequest auth issueRequest
   return $ AllData pullRequests (filterOutPullRequests issues)
   where
-    errorMapper :: Definitions.Error -> MyError
+    errorMapper :: Error -> MyError
     errorMapper e = GitHubError e
 
 getData :: ExceptT MyError IO AllData
@@ -43,8 +44,8 @@ getData = do
   auth <- lookupToken
   getData' auth "octocat" "hello-world"
 
-filterOutPullRequests :: Vector Issues.Issue -> Vector Issues.Issue
-filterOutPullRequests issues = Data.Vector.filter (isNothing . Issues.issuePullRequest) issues
+filterOutPullRequests :: Vector Issue -> Vector Issue
+filterOutPullRequests issues = Data.Vector.filter (isNothing . issuePullRequest) issues
 
 main :: IO ()
 main = do
@@ -53,5 +54,5 @@ main = do
     Left error -> putStrLn (show error)
     Right (AllData prs issues) -> do
       putStrLn $ "Got " ++ (show (length prs)) ++ " pull requests and " ++ (show (length issues)) ++ " issues."
-      traverse_ (putStrLn . show) titles
-      where titles :: Vector Text = fmap Issues.issueTitle issues
+      --traverse_ (putStrLn . show) titles
+      --where titles :: Vector Text = fmap issueTitle issues
