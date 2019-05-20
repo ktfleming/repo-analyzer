@@ -59,7 +59,7 @@ getPRHistogram today prs =
       foldfn pr hist =
         let openDay :: Day = utctDay (simplePullRequestCreatedAt pr)
             closedDay :: Day = fromMaybe today $ fmap utctDay (simplePullRequestClosedAt pr)
-            days :: [Day] = enumFromThen openDay closedDay
+            days :: [Day] = enumFromTo openDay closedDay
             subfold :: Day -> DayHistogram -> DayHistogram
             subfold day h = Map.alter updater day h
               where
@@ -70,10 +70,13 @@ getPRHistogram today prs =
   
 main :: IO ()
 main = do
+  currentDay <- fmap utctDay getCurrentTime
   result <- runExceptT getData
   case result of
     Left error -> putStrLn (show error)
     Right (AllData prs issues) -> do
+      let hist = getPRHistogram currentDay prs
       putStrLn $ "Got " ++ (show (length prs)) ++ " pull requests and " ++ (show (length issues)) ++ " issues."
+      putStrLn $ show hist
       --traverse_ (putStrLn . show) titles
       --where titles :: Vector Text = fmap issueTitle issues
