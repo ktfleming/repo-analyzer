@@ -1,6 +1,8 @@
 .stack-work/
 repo-analyzer.cabal
 *~
+.idea
+*.iml
 
 # Created by https://www.gitignore.io/api/code,haskell
 # Edit at https://www.gitignore.io/?templates=code,haskell

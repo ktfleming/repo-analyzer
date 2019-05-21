@@ -51,14 +51,14 @@ getData = do
 filterOutPullRequests :: Vector Issue -> Vector Issue
 filterOutPullRequests issues = Data.Vector.filter (isNothing . issuePullRequest) issues
 
-getPRHistogram :: Day -> Vector SimplePullRequest -> DayHistogram
-getPRHistogram today prs =
+getHistogram :: DayRange a => Day -> Vector a -> DayHistogram
+getHistogram today prs =
   foldr foldfn Map.empty prs
     where
-      foldfn :: SimplePullRequest -> DayHistogram -> DayHistogram
-      foldfn pr hist =
-        let openDay :: Day = utctDay (simplePullRequestCreatedAt pr)
-            closedDay :: Day = fromMaybe today $ fmap utctDay (simplePullRequestClosedAt pr)
+      foldfn :: DayRange a => a -> DayHistogram -> DayHistogram
+      foldfn item hist =
+        let openDay :: Day = startDay item
+            closedDay :: Day = fromMaybe today (endDay item)
             days :: [Day] = enumFromTo openDay closedDay
             subfold :: Day -> DayHistogram -> DayHistogram
             subfold day h = Map.alter updater day h
@@ -74,9 +74,10 @@ main = do
   result <- runExceptT getData
   case result of
     Left error -> putStrLn (show error)
-    Right (AllData prs issues) -> do
-      let hist = getPRHistogram currentDay prs
+    Right (AllData prs issues) -> do      
       putStrLn $ "Got " ++ (show (length prs)) ++ " pull requests and " ++ (show (length issues)) ++ " issues."
-      putStrLn $ show hist
+      let prHist = getHistogram currentDay prs
+      let issueHist = getHistogram currentDay issues
+      putStrLn $ show issueHist
       --traverse_ (putStrLn . show) titles
       --where titles :: Vector Text = fmap issueTitle issues
