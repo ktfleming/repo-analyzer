@@ -35,13 +35,11 @@ lookupToken = ExceptT $ do
 getData' :: Auth -> Text -> Text -> ExceptT MyError IO AllData
 getData' auth owner repoName = do
   let prRequest = pullRequestsForR (N owner) (N repoName) stateAll FetchAll
-  pullRequests <- withExceptT errorMapper $ ExceptT $ executeRequest auth prRequest
-  let issueRequest = issuesForRepoR　(N owner) (N repoName) stateAll FetchAll
-  issues <- withExceptT errorMapper $ ExceptT $ executeRequest auth issueRequest
+  pullRequests <- withExceptT GitHubError $ ExceptT $ executeRequest auth prRequest
+  let issueRequest = issuesForRepoR (N owner) (N repoName) stateAll FetchAll
+  issues <- withExceptT GitHubError $ ExceptT $ executeRequest auth issueRequest
   return $ AllData pullRequests (filterOutPullRequests issues)
-  where
-    errorMapper :: Error -> MyError
-    errorMapper e = GitHubError e
+
 
 getData :: ExceptT MyError IO AllData
 getData = do
@@ -49,35 +47,34 @@ getData = do
   getData' auth "octocat" "hello-world"
 
 filterOutPullRequests :: Vector Issue -> Vector Issue
-filterOutPullRequests issues = Data.Vector.filter (isNothing . issuePullRequest) issues
+filterOutPullRequests = Data.Vector.filter (isNothing . issuePullRequest)
 
 getHistogram :: DayRange a => Day -> Vector a -> DayHistogram
-getHistogram today prs =
-  foldr foldfn Map.empty prs
-    where
-      foldfn :: DayRange a => a -> DayHistogram -> DayHistogram
-      foldfn item hist =
-        let openDay :: Day = startDay item
-            closedDay :: Day = fromMaybe today (endDay item)
-            days :: [Day] = enumFromTo openDay closedDay
-            subfold :: Day -> DayHistogram -> DayHistogram
-            subfold day h = Map.alter updater day h
-              where
-                updater :: Maybe Int -> Maybe Int
-                updater Nothing = Just 1
-                updater (Just x) = Just (x + 1)
-        in foldr subfold hist days
+getHistogram today = foldr foldfn Map.empty
+  where
+    foldfn :: DayRange a => a -> DayHistogram -> DayHistogram
+    foldfn item hist =
+      let openDay :: Day = startDay item
+          closedDay :: Day = fromMaybe today (endDay item)
+          days :: [Day] = enumFromTo openDay closedDay
+          subfold :: Day -> DayHistogram -> DayHistogram
+          subfold = Map.alter updater
+            where
+              updater :: Maybe Int -> Maybe Int
+              updater Nothing = Just 1
+              updater (Just x) = Just (x + 1)
+       in foldr subfold hist days
   
 main :: IO ()
 main = do
   currentDay <- fmap utctDay getCurrentTime
   result <- runExceptT getData
   case result of
-    Left error -> putStrLn (show error)
-    Right (AllData prs issues) -> do      
-      putStrLn $ "Got " ++ (show (length prs)) ++ " pull requests and " ++ (show (length issues)) ++ " issues."
+    Left error -> print error
+    Right (AllData prs issues) -> do
+      putStrLn $ "Got " ++ show (length prs) ++ " pull requests and " ++ show (length issues) ++ " issues."
       let prHist = getHistogram currentDay prs
       let issueHist = getHistogram currentDay issues
-      putStrLn $ show issueHist
+      print issueHist
       --traverse_ (putStrLn . show) titles
       --where titles :: Vector Text = fmap issueTitle issues
