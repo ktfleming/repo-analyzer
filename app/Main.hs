@@ -64,7 +64,33 @@ getHistogram today = foldr foldfn Map.empty
               updater Nothing = Just 1
               updater (Just x) = Just (x + 1)
        in foldr subfold hist days
-  
+
+data DayData = DayData { openPRs :: Int, openIssues :: Int }
+
+getDayData :: DayHistogram -> DayHistogram -> Day -> DayData
+getDayData prHist issueHist day =
+  let
+    prs :: Int = fromMaybe 0 $ Map.lookup day prHist
+    issues :: Int = fromMaybe 0 $ Map.lookup day issueHist
+  in
+    DayData prs issues
+
+getChart :: Day -> DayHistogram -> DayHistogram -> [String]
+getChart today prHist issueHist =
+  let earliestPRDay :: Day = fst $ fromMaybe (today, 0) $ Map.lookupMin prHist
+      earliestIssueDay :: Day = fst $ fromMaybe (today, 0) $ Map.lookupMin issueHist
+      earliestDay = min earliestPRDay earliestIssueDay
+      days :: [Day] = enumFromTo earliestDay today
+  in
+    foldr fn [] days
+    where
+      fn :: Day -> [String] -> [String]
+      fn day texts =
+        let dayData = getDayData prHist issueHist day
+            prText:: String = replicate (openPRs dayData) '#'
+            textForDay = (show day) ++ prText
+        in texts ++ [textForDay]
+
 main :: IO ()
 main = do
   currentDay <- fmap utctDay getCurrentTime
@@ -74,7 +100,6 @@ main = do
     Right (AllData prs issues) -> do
       putStrLn $ "Got " ++ show (length prs) ++ " pull requests and " ++ show (length issues) ++ " issues."
       let prHist = getHistogram currentDay prs
-      let issueHist = getHistogram currentDay issues
-      print issueHist
-      --traverse_ (putStrLn . show) titles
-      --where titles :: Vector Text = fmap issueTitle issues
+          issueHist = getHistogram currentDay issues
+          chart = getChart currentDay prHist issueHist
+      traverse_ print chart
