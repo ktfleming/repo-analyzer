@@ -75,6 +75,21 @@ getDayData prHist issueHist day =
   in
     DayData prs issues
 
+getTextForDay :: DayData -> String
+getTextForDay dayData =
+  let prs = openPRs dayData
+      issues = openIssues dayData
+      justPR = '$'
+      justIssue = '%'
+      both = '#'
+      bothCount = min prs issues -- largest `x` such that there are at least x open PRs and x open issues
+      tailCount = max prs issues - bothCount
+      tailChar =
+        (if prs <= issues
+           then justIssue
+           else justPR)
+   in replicate bothCount both ++ replicate tailCount tailChar
+
 getChart :: Day -> DayHistogram -> DayHistogram -> [String]
 getChart today prHist issueHist =
   let earliestPRDay :: Day = fst $ fromMaybe (today, 0) $ Map.lookupMin prHist
@@ -87,8 +102,7 @@ getChart today prHist issueHist =
       fn :: Day -> [String] -> [String]
       fn day texts =
         let dayData = getDayData prHist issueHist day
-            prText:: String = replicate (openPRs dayData) '#'
-            textForDay = (show day) ++ prText
+            textForDay = show day ++ " " ++ getTextForDay dayData
         in texts ++ [textForDay]
 
 main :: IO ()
@@ -102,4 +116,4 @@ main = do
       let prHist = getHistogram currentDay prs
           issueHist = getHistogram currentDay issues
           chart = getChart currentDay prHist issueHist
-      traverse_ print chart
+      traverse_ putStrLn chart
