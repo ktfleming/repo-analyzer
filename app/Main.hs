@@ -13,14 +13,17 @@ import GitHub.Auth
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except
 import Data.Maybe (isNothing, fromMaybe)
-import Data.Text (Text)
+import Data.Text (Text, pack)
 import Data.Vector (Vector, filter)
 import Data.Foldable (traverse_)
 import Data.Time
 import Data.Time.Calendar
 import qualified Data.Map.Strict as Map
 import System.ReadEnvVar
+import Options.Applicative
 import Lib
+
+data AppArguments = AppArguments { orgToLookup :: String, repoToLookup :: String }
 
 data MyError = NoTokenFound | GitHubError Error deriving Show
 
@@ -40,11 +43,10 @@ getData' auth owner repoName = do
   issues <- withExceptT GitHubError $ ExceptT $ executeRequest auth issueRequest
   return $ AllData pullRequests (filterOutPullRequests issues)
 
-
-getData :: ExceptT MyError IO AllData
-getData = do
+getData :: AppArguments -> ExceptT MyError IO AllData
+getData args = do
   auth <- lookupToken
-  getData' auth "octocat" "hello-world"
+  getData' auth (pack . orgToLookup $ args) (pack . repoToLookup $ args)
 
 filterOutPullRequests :: Vector Issue -> Vector Issue
 filterOutPullRequests = Data.Vector.filter (isNothing . issuePullRequest)
@@ -105,10 +107,10 @@ getChart today prHist issueHist =
             textForDay = show day ++ " " ++ getTextForDay dayData
         in texts ++ [textForDay]
 
-main :: IO ()
-main = do
+runWithArguments :: AppArguments -> IO ()
+runWithArguments args = do
   currentDay <- fmap utctDay getCurrentTime
-  result <- runExceptT getData
+  result <- runExceptT $ getData args
   case result of
     Left error -> print error
     Right (AllData prs issues) -> do
@@ -117,3 +119,9 @@ main = do
           issueHist = getHistogram currentDay issues
           chart = getChart currentDay prHist issueHist
       traverse_ putStrLn chart
+
+main :: IO ()
+main = execParser opts >>= runWithArguments
+  where
+   parser = AppArguments <$> argument str (metavar "ORG") <*> argument str (metavar "REPO")
+   opts = info parser mempty

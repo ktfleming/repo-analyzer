@@ -27,6 +27,7 @@ dependencies:
 - read-env-var == 1.0.0.0
 - time == 1.8.0.2
 - containers == 0.6.0.1
+- optparse-applicative == 0.14.3.0
 
 library:
   source-dirs: src
