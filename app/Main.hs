@@ -21,6 +21,7 @@ import Data.Time.Calendar
 import qualified Data.Map.Strict as Map
 import System.ReadEnvVar
 import Options.Applicative
+import Safe.Foldable
 import Lib
 
 data AppArguments = AppArguments { orgToLookup :: String, repoToLookup :: String }
@@ -29,6 +30,10 @@ data MyError = NoTokenFound | GitHubError Error deriving Show
 
 data AllData = AllData (Vector SimplePullRequest) (Vector Issue)
 type DayHistogram = Map.Map Day Int
+
+justPR = '$'
+justIssue = '%'
+both = '#'
 
 lookupToken :: ExceptT MyError IO Auth
 lookupToken = ExceptT $ do
@@ -81,9 +86,6 @@ getTextForDay :: DayData -> String
 getTextForDay dayData =
   let prs = openPRs dayData
       issues = openIssues dayData
-      justPR = '$'
-      justIssue = '%'
-      both = '#'
       bothCount = min prs issues -- largest `x` such that there are at least x open PRs and x open issues
       tailCount = max prs issues - bothCount
       tailChar =
@@ -94,18 +96,18 @@ getTextForDay dayData =
 
 getChart :: Day -> DayHistogram -> DayHistogram -> [String]
 getChart today prHist issueHist =
-  let earliestPRDay :: Day = fst $ fromMaybe (today, 0) $ Map.lookupMin prHist
-      earliestIssueDay :: Day = fst $ fromMaybe (today, 0) $ Map.lookupMin issueHist
-      earliestDay = min earliestPRDay earliestIssueDay
-      days :: [Day] = enumFromTo earliestDay today
-  in
-    foldr fn [] days
-    where
-      fn :: Day -> [String] -> [String]
-      fn day texts =
-        let dayData = getDayData prHist issueHist day
-            textForDay = show day ++ " " ++ getTextForDay dayData
-        in texts ++ [textForDay]
+  let todayOr :: Maybe (Day, Int) -> Day
+      todayOr maybeDay = fst $ fromMaybe (today, 0) maybeDay
+      allDays = Map.keys prHist ++ Map.keys issueHist
+      (earliestDay, latestDay) = (fromMaybe today $ minimumMay allDays, fromMaybe today $ maximumMay allDays)
+      days :: [Day] = enumFromTo earliestDay latestDay
+   in foldr fn [] days
+  where
+    fn :: Day -> [String] -> [String]
+    fn day texts =
+      let dayData = getDayData prHist issueHist day
+          textForDay = show day ++ " " ++ getTextForDay dayData
+       in texts ++ [textForDay]
 
 runWithArguments :: AppArguments -> IO ()
 runWithArguments args = do
