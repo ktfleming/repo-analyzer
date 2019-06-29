@@ -131,8 +131,8 @@ getLineForDay dayData =
 
 -- Given an ending day (i.e. today), along with histograms for PRs and Issues, construct the
 -- full "chart"
-getChart :: Day -> DayHistogram -> DayHistogram -> [String]
-getChart today prHist issueHist =
+getChart :: Day -> PRHistogram -> IssueHistogram -> [String]
+getChart today (PRHistogram prHist) (IssueHistogram issueHist) =
   let allDays = Map.keys prHist ++ Map.keys issueHist
       (earliestDay, latestDay) = (fromMaybe today $ minimumMay allDays, fromMaybe today $ maximumMay allDays)
       days :: [Day] = enumFromTo earliestDay latestDay
@@ -152,8 +152,8 @@ runWithArguments args = do
     Left error -> print error
     Right (AllData prs issues) -> do
       putStrLn $ "Got " ++ show (length prs) ++ " pull requests and " ++ show (length issues) ++ " issues."
-      let prHist = getHistogram currentDay prs
-          issueHist = getHistogram currentDay issues
+      let prHist = PRHistogram $ getHistogram currentDay prs
+          issueHist = IssueHistogram $ getHistogram currentDay issues
           chart = getChart currentDay prHist issueHist
       traverse_ putStrLn chart
 
