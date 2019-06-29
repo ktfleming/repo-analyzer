@@ -1,9 +1,9 @@
 module Lib where
 
-import Data.Time (utctDay)
-import Data.Time.Calendar (Day)
-import GitHub.Endpoints.PullRequests
-import GitHub.Endpoints.Issues
+import           Data.Time                     (utctDay)
+import           Data.Time.Calendar            (Day)
+import           GitHub.Endpoints.Issues
+import           GitHub.Endpoints.PullRequests
 
 -- Just a becomes Right a
 -- Nothing becomes Left e
@@ -18,8 +18,8 @@ class DayRange a where
 
 instance DayRange SimplePullRequest where
     startDay = utctDay . simplePullRequestCreatedAt
-    endDay = (fmap utctDay) . simplePullRequestClosedAt
+    endDay = fmap utctDay . simplePullRequestClosedAt
 
 instance DayRange Issue where
     startDay = utctDay . issueCreatedAt
-    endDay = (fmap utctDay) . issueClosedAt
+    endDay = fmap utctDay . issueClosedAt

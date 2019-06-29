@@ -1,28 +1,28 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
-import GitHub.Endpoints.PullRequests
-import GitHub.Endpoints.Issues
-import GitHub.Data.Name ( Name ( N))
-import GitHub.Data.Options
-import GitHub.Request
-import GitHub.Data.Definitions
-import GitHub.Auth
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Trans.Except
-import Data.Maybe (isNothing, fromMaybe)
-import Data.Text (Text, pack)
-import Data.Vector (Vector, filter)
-import Data.Foldable (traverse_)
-import Data.Time
-import Data.Time.Calendar
-import qualified Data.Map.Strict as Map
-import System.ReadEnvVar
-import Options.Applicative
-import Safe.Foldable
-import Lib
+import           Control.Monad.IO.Class        (liftIO)
+import           Control.Monad.Trans.Except
+import           Data.Foldable                 (traverse_)
+import qualified Data.Map.Strict               as Map
+import           Data.Maybe                    (fromMaybe, isNothing)
+import           Data.Text                     (Text, pack)
+import           Data.Time
+import           Data.Time.Calendar
+import           Data.Vector                   (Vector, filter)
+import           GitHub.Auth
+import           GitHub.Data.Definitions
+import           GitHub.Data.Name              (Name (N))
+import           GitHub.Data.Options
+import           GitHub.Endpoints.Issues
+import           GitHub.Endpoints.PullRequests
+import           GitHub.Request
+import           Lib
+import           Options.Applicative
+import           Safe.Foldable
+import           System.ReadEnvVar
 
 data AppArguments = AppArguments { orgToLookup :: String, repoToLookup :: String }
 
@@ -91,7 +91,7 @@ getHistogram today = foldr addCounts Map.empty
           subfold = Map.alter updater
             where
               updater :: Maybe Int -> Maybe Int
-              updater Nothing = Just 1
+              updater Nothing  = Just 1
               updater (Just x) = Just (x + 1)
        -- Folding `subfold` over each Day in the current `a`'s range of "open" days will
        -- cause the current `a` to be represented in the final DayHistogram.
