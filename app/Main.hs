@@ -146,6 +146,7 @@ getChart today (PRHistogram prHist) (IssueHistogram issueHist) =
 
 runWithArguments :: AppArguments -> IO ()
 runWithArguments args = do
+  putStrLn $ "Retrieving data from GitHub..."
   currentDay <- fmap utctDay getCurrentTime
   result <- runExceptT $ getDataFromArguments args
   case result of
